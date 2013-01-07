@@ -1,0 +1,2 @@
+This tiny application reads the language files from the XBMC source tree and can show multiple languages side by side.
+Specify XBMC_ROOT in your environment or pass the path as the first argument to the executable on the commandline.
