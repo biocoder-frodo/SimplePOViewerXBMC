@@ -331,16 +331,26 @@ namespace SimplePOViewerXBMC
                     bool match = false;
                     if (match_text.Length > 0)
                     {
-                        for (int i = 1; i < languages.Count && match == false; i++)
+                        for (int i = 0; i < languages.Count && match == false; i++)
                         {
+                            string r;
+                            if (i == 0)
+                            {
+                                r = t.Key;
+                            }
+                            else
+                            {
+                                r = ResourceText(languages.Values.ElementAt(i).Text, t.NumId);
+                            }
+
                             if (ignore_case)
                             {
-                                if (ResourceText(languages.Values.ElementAt(i).Text, t.NumId).ToLower().Contains(match_text))
+                                if (r.ToLower().Contains(match_text))
                                     match = true;
                             }
                             else
                             {
-                                if (ResourceText(languages.Values.ElementAt(i).Text, t.NumId).Contains(match_text))
+                                if (r.Contains(match_text))
                                     match = true;
                             }
                         }
