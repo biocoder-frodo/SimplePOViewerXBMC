@@ -19,7 +19,8 @@ namespace SimplePOViewerXBMC
         private int sorted = -1;
         private bool filterpercent = false;
         private DirectoryInfo xbmc = null;
-        private Dictionary<string,LanguageInfo> languages = new Dictionary<string,LanguageInfo>();       
+        
+        private Dictionary<string, LanguageInfo> languages = new Dictionary<string, LanguageInfo>();
 
         #region Form entry points
 
@@ -48,17 +49,36 @@ namespace SimplePOViewerXBMC
 
                     foreach (DirectoryInfo di in lang)
                     {
-                        comboBox1.Items.Add(di.Name);
+                        cmbLanguage.Items.Add(di.Name);
                     }
 
                     List<string> addons = GetPOAddons();
 
                     foreach (string addon in addons)
                     {
-                        comboBox2.Items.Add(addon);
+                        cmbAddon.Items.Add(addon);
                     }
 
-                    comboBox2.SelectedItem = comboBox2.Items[comboBox2.Items.IndexOf("skin.confluence")];
+                    int index = cmbAddon.Items.IndexOf("skin.confluence");
+                    if (index > -1)
+                    {
+                        cmbAddon.SelectedItem = cmbAddon.Items[index]; // setting the item triggers the LoadWithAddon call
+                    }
+                    
+                    DirectoryInfo current = new DirectoryInfo(Environment.CurrentDirectory);
+                    FileInfo[] cfg = current.GetFiles("language.cfg");
+                    if (cfg.Count() == 1)
+                    {
+                        StreamReader sr = new StreamReader(cfg[0].FullName);
+                        while (sr.EndOfStream == false)
+                        {
+                            string l = sr.ReadLine().Trim();
+                            if (cmbLanguage.Items.IndexOf(l) > -1)
+                            {
+                                AddLanguageToView("skin.confluence", l, listView1);
+                            }
+                        }
+                    }
                 }
                 else
                 {
@@ -71,6 +91,54 @@ namespace SimplePOViewerXBMC
             }
         }
 
+        private void showOnlyItemsWithToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            ToolStripMenuItem ctl = (ToolStripMenuItem)sender;
+            ctl.Checked = !ctl.Checked;
+            filterpercent = ctl.Checked;
+
+            LoadWithAddon(cmbAddon.SelectedItem.ToString(), listView1, cmbLanguage);
+        }
+        private void saveFileDialog1_FileOk(object sender, CancelEventArgs e)
+        {
+            ExportToFile(((SaveFileDialog)sender).FileName);
+        }
+
+        private void exportToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            saveFileDialog1.ShowDialog();
+        }
+        private void button1_Click(object sender, EventArgs e)
+        {
+            AddLanguageToView(cmbAddon.SelectedItem.ToString(), cmbLanguage.SelectedItem.ToString(), listView1);
+        }
+
+        private void cmbAddon_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            LoadWithAddon(cmbAddon.SelectedItem.ToString(), listView1, cmbLanguage); ;
+        }
+        private void lookupByNumericIDToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            frmEvalID evalform = new frmEvalID(languages);
+            evalform.ShowDialog();
+        }
+
+        private void checkBox1_CheckedChanged(object sender, EventArgs e)
+        {
+            CheckBox ctl = (CheckBox)sender;
+            checkBox2.Enabled = !ctl.Checked;
+        }
+
+        private void checkBox2_CheckedChanged(object sender, EventArgs e)
+        {
+            PopulateListView(listView1);
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            PopulateListView(listView1);
+        }
+        
         private void listView1_ColumnClick(object sender, System.Windows.Forms.ColumnClickEventArgs e)
         {
             ListView ctl = (ListView)sender;
@@ -93,78 +161,6 @@ namespace SimplePOViewerXBMC
                 ctl.ListViewItemSorter = new ListViewItemComparer(e.Column, ctl.Sorting, typeof(int));
             }
             ctl.Sort();
-        }
-
-        private void showOnlyItemsWithToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            ToolStripMenuItem ctl = (ToolStripMenuItem)sender;
-            ctl.Checked = !ctl.Checked;
-            filterpercent = ctl.Checked;
-
-            LoadWithAddon();
-        }
-        private void saveFileDialog1_FileOk(object sender, CancelEventArgs e)
-        {
-            ExportToFile(((SaveFileDialog)sender).FileName);
-        }
-
-        private void exportToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            saveFileDialog1.ShowDialog();
-        }
-        private void button1_Click(object sender, EventArgs e)
-        {
-            try
-            {
-
-                if (comboBox1.Text != "English")
-                {
-                    ColumnHeader[] ch = new ColumnHeader[] { new ColumnHeader() };
-
-                    LanguageInfo lng = LoadLanguage(comboBox1.Text, comboBox2.SelectedItem.ToString());
-
-                    languages.Add(comboBox1.Text, lng);
-
-                    ch[0].Text = string.Format("Translation({0})", lng.RevisionInfo["Language"].Replace(@"\n", ""));
-                    ch[0].Width = listView1.Columns[1].Width;
-                    listView1.Columns.AddRange(ch);
-                    
-                    PopulateListView(listView1);
-
-
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message);
-            }
-        }
-
-        private void lookupByNumericIDToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            frmEvalID evalform = new frmEvalID(languages);
-            evalform.ShowDialog();
-        }
-
-        private void comboBox2_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            LoadWithAddon();
-        }
-
-        private void checkBox1_CheckedChanged(object sender, EventArgs e)
-        {
-            CheckBox ctl = (CheckBox)sender;
-            checkBox2.Enabled = !ctl.Checked;
-        }
-
-        private void checkBox2_CheckedChanged(object sender, EventArgs e)
-        {
-            PopulateListView(listView1);
-        }
-
-        private void button2_Click(object sender, EventArgs e)
-        {
-            PopulateListView(listView1);
         }
 
         #endregion
@@ -247,13 +243,13 @@ namespace SimplePOViewerXBMC
                 throw new FileNotFoundException(string.Format("Cannot find the language file [{2}] for {0} in XBMC_ROOT: {1}", Language, xbmc.FullName, root_folder));
             }
         }
-        
+
         string GetFileStringsPO(string Language)
         {
             return GetFileStringsPO(string.Empty, Language);
         }
 
-        private LanguageInfo LoadLanguage(string language, string addon_resource)
+        private LanguageInfo LoadPO(string language, string addon_resource)
         {
             LanguageInfo lng = new LanguageInfo(GetFileStringsPO(language));
             lng.Load(GetFileStringsPO(addon_resource, language));
@@ -272,36 +268,67 @@ namespace SimplePOViewerXBMC
             }
             return lng;
         }
-        private void LoadWithAddon()
+
+        private void AddLanguageToView(string addon_resource, string language, ListView list)
         {
             try
             {
-                listView1.Items.Clear();
-                this.listView1.ListViewItemSorter = null;
-                listView1.Sorting = SortOrder.None;
+                if (languages.ContainsKey(language))
+                {
+                    languages[language] = LoadPO(language, addon_resource);
+                }
+                else
+                {
+                    ColumnHeader[] ch = new ColumnHeader[] { new ColumnHeader() };
+
+                    LanguageInfo lng = LoadPO(language, addon_resource);
+
+                    languages.Add(language, lng);
+
+                    ch[0].Text = string.Format("Translation({0})", lng.RevisionInfo["Language"].Replace(@"\n", ""));
+                    ch[0].Width = list.Columns[2].Width;
+                    list.Columns.AddRange(ch);
+                }
+
+                PopulateListView(list);
+
+            }          
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
+        }
+
+        private void LoadWithAddon(string addon_resource, ListView list, ComboBox set_language)
+        {
+            try
+            {
+                list.Items.Clear();
+                list.ListViewItemSorter = null;
+                list.Sorting = SortOrder.None;
 
                 if (languages.Count == 0)
                 {
-                    languages.Add("English", LoadLanguage("English", comboBox2.SelectedItem.ToString()));
+                    languages.Add("English", LoadPO("English", addon_resource)); 
                 }
                 else
                 {
                     foreach (string lng in languages.Keys.ToList())
                     {
-                        languages[lng] = LoadLanguage(lng, comboBox2.SelectedItem.ToString());
+                        languages[lng] = LoadPO(lng, addon_resource);
                     }
                 }
+
+                PopulateListView(list);
+
+                set_language.SelectedItem = set_language.Items[set_language.Items.IndexOf("English")];
             }
             catch (Exception ex)
             {
                 MessageBox.Show(ex.Message);
             }
-
-
-            PopulateListView(listView1);
-
-            comboBox1.SelectedItem = comboBox1.Items[comboBox1.Items.IndexOf("English")];
         }
+
         private string ResourceText(Dictionary<int, TextResource> map, int key)
         {
             if (map.ContainsKey(key) == true)
@@ -310,93 +337,95 @@ namespace SimplePOViewerXBMC
                 return "";
         }
 
-
         private void PopulateListView(ListView control)
         {
-            bool  ignore_case = checkBox2.Checked;
-            string match_text = textBox1.Text.Trim();
+            bool ignore_case = checkBox2.Checked;
+            string match_text = txtFilter.Text.Trim();
 
             if (ignore_case) match_text = match_text.ToLower();
 
             LanguageInfo en = languages["English"];
 
-            if (en != null)
+            try
             {
-                control.Items.Clear();
-                control.ListViewItemSorter = null;
-                control.Sorting = SortOrder.None;
+                if (en != null)
+                {
+                    control.Items.Clear();
+                    control.ListViewItemSorter = null;
+                    control.Sorting = SortOrder.None;
 
-                foreach (TextResource t in en.Text.Values)
-                { 
-                    bool match = false;
-                    if (match_text.Length > 0)
+                    foreach (TextResource t in en.Text.Values)
                     {
-                        for (int i = 0; i < languages.Count && match == false; i++)
+                        bool match = false;
+                        if (match_text.Length > 0)
                         {
-                            string r;
-                            if (i == 0)
+                            for (int i = 0; i < languages.Count && match == false; i++)
                             {
-                                r = t.Key;
-                            }
-                            else
-                            {
-                                r = ResourceText(languages.Values.ElementAt(i).Text, t.NumId);
-                            }
+                                string r;
+                                if (i == 0)
+                                {
+                                    r = t.Key;
+                                }
+                                else
+                                {
+                                    r = ResourceText(languages.Values.ElementAt(i).Text, t.NumId);
+                                }
 
-                            if (ignore_case)
-                            {
-                                if (r.ToLower().Contains(match_text))
-                                    match = true;
-                            }
-                            else
-                            {
-                                if (r.Contains(match_text))
-                                    match = true;
+                                if (ignore_case)
+                                {
+                                    if (r.ToLower().Contains(match_text))
+                                        match = true;
+                                }
+                                else
+                                {
+                                    if (r.Contains(match_text))
+                                        match = true;
+                                }
                             }
                         }
-                    }
-                    else
-                        match = true;
+                        else
+                            match = true;
 
-                    if (match)
-                    {
-                        if (filterpercent)
+                        if (match)
                         {
-                            if (t.Key.Contains('%'))
+                            if (filterpercent)
+                            {
+                                if (t.Key.Contains('%'))
+                                {
+                                    ListViewItem lvi = control.Items.Add(t.NumId.ToString());
+                                    lvi.SubItems.Add(t.Comment);
+
+                                    lvi.SubItems.Add(t.Key);
+
+                                    for (int i = 1; i < languages.Count; i++)
+                                    {
+                                        lvi.SubItems.Add(ResourceText(languages.Values.ElementAt(i).Text, t.NumId));
+
+                                    }
+                                }
+                            }
+                            else
                             {
                                 ListViewItem lvi = control.Items.Add(t.NumId.ToString());
                                 lvi.SubItems.Add(t.Comment);
-
                                 lvi.SubItems.Add(t.Key);
 
                                 for (int i = 1; i < languages.Count; i++)
                                 {
                                     lvi.SubItems.Add(ResourceText(languages.Values.ElementAt(i).Text, t.NumId));
-
                                 }
-
                             }
-
-                        }
-                        else
-                        {
-                            ListViewItem lvi = control.Items.Add(t.NumId.ToString());
-                            lvi.SubItems.Add(t.Comment);
-                            lvi.SubItems.Add(t.Key);
-
-                            for (int i = 1; i < languages.Count; i++)
-                            {
-                                lvi.SubItems.Add(ResourceText(languages.Values.ElementAt(i).Text, t.NumId));
-
-                            }
-
                         }
                     }
                 }
+                string status = (filterpercent) ? "Show only items with %" : "Show all items ";
+                status += ((match_text.Length > 0) ? " containing '" + txtFilter.Text.Trim() + "'" : "");
+                toolStripStatusLabel1.Text = status;
             }
-            string status = (filterpercent) ? "Show only items with %" : "Show all items ";
-            status += ((match_text.Length >0 ) ? " containing '"+textBox1.Text.Trim()+"'" : "");
-            toolStripStatusLabel1.Text = status;
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
         }
 
 
@@ -408,7 +437,6 @@ namespace SimplePOViewerXBMC
                 StreamWriter sw = new StreamWriter(filename);
                 foreach (ListViewItem li in lv.Items)
                 {
-                    //sw.Write(li.Text);
                     foreach (ListViewItem.ListViewSubItem si in li.SubItems)
                     {
                         sw.Write("\t" + si.Text);
@@ -424,7 +452,6 @@ namespace SimplePOViewerXBMC
         }
 
     }
-
 
     class ListViewItemComparer : IComparer
     {
@@ -465,7 +492,7 @@ namespace SimplePOViewerXBMC
             {
                 case 0:
                     {
-                        result = String.Compare(  x.SubItems[orderby].Text,
+                        result = String.Compare(x.SubItems[orderby].Text,
                                                 y.SubItems[orderby].Text);
 
                         break;
@@ -481,9 +508,9 @@ namespace SimplePOViewerXBMC
 
                             result = ix - iy;
                         }
-                        catch 
+                        catch
                         {
-                            result= String.Compare(  x.SubItems[orderby].Text,
+                            result = String.Compare(x.SubItems[orderby].Text,
                                                 y.SubItems[orderby].Text);
                         }
 
@@ -496,21 +523,21 @@ namespace SimplePOViewerXBMC
                             DateTime d1 = DateTime.Parse(x.SubItems[orderby].Text);
                             DateTime d2 = DateTime.Parse(y.SubItems[orderby].Text);
 
-                            result = DateTime.Compare(d1,d2);
+                            result = DateTime.Compare(d1, d2);
                         }
                         catch
                         {
-                            result = string.Compare(  x.SubItems[orderby].Text,
+                            result = string.Compare(x.SubItems[orderby].Text,
                                                     y.SubItems[orderby].Text);
                         }
                         break;
                     }
                 default:
-                    goto case 0;                    
+                    goto case 0;
             }
-            
-                
-            return (order == SortOrder.Descending) ? -result : result;           
+
+
+            return (order == SortOrder.Descending) ? -result : result;
         }
     }
 }
