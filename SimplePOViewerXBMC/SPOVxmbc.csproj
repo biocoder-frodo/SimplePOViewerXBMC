@@ -59,6 +59,7 @@
       <DependentUpon>frmEvalID.cs</DependentUpon>
     </Compile>
     <Compile Include="LanguageInfo.cs" />
+    <Compile Include="ListViewItemComparer.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="frmMain.resx">

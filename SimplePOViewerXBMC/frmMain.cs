@@ -1,4 +1,25 @@
-﻿using System;
+﻿/*
+ *      Copyright (C) 2012 Team XBMC
+ *      http://xbmc.org
+ *
+ *  This Program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2, or (at your option)
+ *  any later version.
+ *
+ *  This Program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with XBMC; see the file COPYING.  If not, write to
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+ *  http://www.gnu.org/copyleft/gpl.html
+ *
+ */
+
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -9,6 +30,7 @@ using System.Windows.Forms;
 using System.IO;
 using System.Collections;
 using System.Text.RegularExpressions;
+
 using XBMC.International;
 
 
@@ -19,190 +41,9 @@ namespace SimplePOViewerXBMC
         private int sorted = -1;
         private bool filterpercent = false;
         private DirectoryInfo xbmc = null;
-        
+
         private Dictionary<string, LanguageInfo> languages = new Dictionary<string, LanguageInfo>();
 
-        #region Form entry points
-
-        public frmMain(DirectoryInfo XBMC_ROOT)
-        {
-            InitializeComponent();
-
-            xbmc = XBMC_ROOT;
-
-        }
-        internal frmMain()
-        {
-            ;
-        }
-
-        private void Form1_Load(object sender, EventArgs e)
-        {
-            try
-            {
-                // specificy path to strings.po without using platform path specifier (and assume case-sensitive filenames)
-                DirectoryInfo[] language = xbmc.GetDirectories("language");
-                if (language.Count() == 1)
-                {
-
-                    DirectoryInfo[] lang = language[0].GetDirectories();
-
-                    foreach (DirectoryInfo di in lang)
-                    {
-                        cmbLanguage.Items.Add(di.Name);
-                    }
-
-                    List<string> addons = GetPOAddons();
-
-                    foreach (string addon in addons)
-                    {
-                        cmbAddon.Items.Add(addon);
-                    }
-
-                    int index = cmbAddon.Items.IndexOf("skin.confluence");
-                    if (index > -1)
-                    {
-                        cmbAddon.SelectedItem = cmbAddon.Items[index]; // setting the item triggers the LoadWithAddon call
-                    }
-                    
-                    DirectoryInfo current = new DirectoryInfo(Environment.CurrentDirectory);
-                    FileInfo[] cfg = current.GetFiles("language.cfg");
-                    if (cfg.Count() == 1)
-                    {
-                        StreamReader sr = new StreamReader(cfg[0].FullName);
-                        while (sr.EndOfStream == false)
-                        {
-                            string l = sr.ReadLine().Trim();
-                            if (cmbLanguage.Items.IndexOf(l) > -1)
-                            {
-                                AddLanguageToView("skin.confluence", l, listView1);
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    MessageBox.Show("Unable to find the language folder. Did you set XBMC_ROOT or specify the folder on the commandline?");
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message);
-            }
-        }
-
-        private void showOnlyItemsWithToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            ToolStripMenuItem ctl = (ToolStripMenuItem)sender;
-            ctl.Checked = !ctl.Checked;
-            filterpercent = ctl.Checked;
-
-            LoadWithAddon(cmbAddon.SelectedItem.ToString(), listView1, cmbLanguage);
-        }
-        private void saveFileDialog1_FileOk(object sender, CancelEventArgs e)
-        {
-            ExportToFile(((SaveFileDialog)sender).FileName);
-        }
-
-        private void exportToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            saveFileDialog1.ShowDialog();
-        }
-        private void button1_Click(object sender, EventArgs e)
-        {
-            AddLanguageToView(cmbAddon.SelectedItem.ToString(), cmbLanguage.SelectedItem.ToString(), listView1);
-        }
-
-        private void cmbAddon_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            LoadWithAddon(cmbAddon.SelectedItem.ToString(), listView1, cmbLanguage); ;
-        }
-        private void lookupByNumericIDToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            frmEvalID evalform = new frmEvalID(languages);
-            evalform.ShowDialog();
-        }
-
-        private void checkBox1_CheckedChanged(object sender, EventArgs e)
-        {
-            CheckBox ctl = (CheckBox)sender;
-            checkBox2.Enabled = !ctl.Checked;
-        }
-
-        private void checkBox2_CheckedChanged(object sender, EventArgs e)
-        {
-            PopulateListView(listView1);
-        }
-
-        private void button2_Click(object sender, EventArgs e)
-        {
-            PopulateListView(listView1);
-        }
-        
-        private void listView1_ColumnClick(object sender, System.Windows.Forms.ColumnClickEventArgs e)
-        {
-            ListView ctl = (ListView)sender;
-            if (e.Column != sorted)
-            {
-                sorted = e.Column;
-                ctl.Sorting = SortOrder.Ascending;
-            }
-            else
-            {
-                ctl.Sorting = (ctl.Sorting == SortOrder.Ascending) ? SortOrder.Descending : SortOrder.Ascending;
-            }
-
-            if (e.Column != 0)
-            {
-                ctl.ListViewItemSorter = new ListViewItemComparer(e.Column, ctl.Sorting, typeof(string));
-            }
-            else
-            {
-                ctl.ListViewItemSorter = new ListViewItemComparer(e.Column, ctl.Sorting, typeof(int));
-            }
-            ctl.Sort();
-        }
-
-        #endregion
-
-        List<string> GetPOAddons()
-        {
-            List<string> addons = new List<string>();
-
-            // specificy path to strings.po without using platform path specifier (and assume case-sensitive filenames)
-            DirectoryInfo[] folders = xbmc.GetDirectories("addons").First().GetDirectories();
-
-            foreach (DirectoryInfo di in folders)
-            {
-                DirectoryInfo en_folder = null;
-
-                en_folder = new DirectoryInfo(System.IO.Path.Combine(di.FullName, "language", "English"));
-
-                if (en_folder.Exists)
-                {
-                    FileInfo[] strings_po = en_folder.GetFiles("strings.po");
-                    if (strings_po.Count() > 0)
-                    {
-                        addons.Add(di.Name);
-                    }
-                }
-                else
-                {
-                    en_folder = new DirectoryInfo(System.IO.Path.Combine(di.FullName, "resources", "language", "English"));
-
-                    if (en_folder.Exists)
-                    {
-                        FileInfo[] strings_po = en_folder.GetFiles("strings.po");
-                        if (strings_po.Count() > 0)
-                        {
-                            addons.Add(di.Name);
-                        }
-                    }
-                }
-            }
-
-            return addons;
-        }
 
         string GetFileStringsPO(string addon, string Language)
         {
@@ -292,7 +133,7 @@ namespace SimplePOViewerXBMC
 
                 PopulateListView(list);
 
-            }          
+            }
             catch (Exception ex)
             {
                 MessageBox.Show(ex.Message);
@@ -309,7 +150,7 @@ namespace SimplePOViewerXBMC
 
                 if (languages.Count == 0)
                 {
-                    languages.Add("English", LoadPO("English", addon_resource)); 
+                    languages.Add("English", LoadPO("English", addon_resource));
                 }
                 else
                 {
@@ -327,6 +168,45 @@ namespace SimplePOViewerXBMC
             {
                 MessageBox.Show(ex.Message);
             }
+        }
+
+        List<string> GetPOAddons()
+        {
+            List<string> addons = new List<string>();
+
+            // specificy path to strings.po without using platform path specifier (and assume case-sensitive filenames)
+            DirectoryInfo[] folders = xbmc.GetDirectories("addons").First().GetDirectories();
+
+            foreach (DirectoryInfo di in folders)
+            {
+                DirectoryInfo en_folder = null;
+
+                en_folder = new DirectoryInfo(System.IO.Path.Combine(di.FullName, "language", "English"));
+
+                if (en_folder.Exists)
+                {
+                    FileInfo[] strings_po = en_folder.GetFiles("strings.po");
+                    if (strings_po.Count() > 0)
+                    {
+                        addons.Add(di.Name);
+                    }
+                }
+                else
+                {
+                    en_folder = new DirectoryInfo(System.IO.Path.Combine(di.FullName, "resources", "language", "English"));
+
+                    if (en_folder.Exists)
+                    {
+                        FileInfo[] strings_po = en_folder.GetFiles("strings.po");
+                        if (strings_po.Count() > 0)
+                        {
+                            addons.Add(di.Name);
+                        }
+                    }
+                }
+            }
+
+            return addons;
         }
 
         private string ResourceText(Dictionary<int, TextResource> map, int key)
@@ -451,94 +331,149 @@ namespace SimplePOViewerXBMC
             }
         }
 
-    }
 
-    class ListViewItemComparer : IComparer
-    {
-        private readonly int orderby;
-        private readonly SortOrder order;
-        private readonly int compare_as;
+        #region Form entry points
 
-        public ListViewItemComparer(int column, SortOrder order, Type expected)
+        public frmMain(DirectoryInfo XBMC_ROOT)
         {
-            orderby = column;
-            this.order = order;
+            InitializeComponent();
 
-            if (expected == typeof(int))
+            xbmc = XBMC_ROOT;
+
+        }
+        internal frmMain()
+        {
+            ;
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            try
             {
-                compare_as = 1;
-            }
-            else
-            {
-                if (expected == typeof(DateTime))
+                // specificy path to strings.po without using platform path specifier (and assume case-sensitive filenames)
+                DirectoryInfo[] language = xbmc.GetDirectories("language");
+                if (language.Count() == 1)
                 {
-                    compare_as = 2;
+
+                    DirectoryInfo[] lang = language[0].GetDirectories();
+
+                    foreach (DirectoryInfo di in lang)
+                    {
+                        cmbLanguage.Items.Add(di.Name);
+                    }
+
+                    List<string> addons = GetPOAddons();
+
+                    foreach (string addon in addons)
+                    {
+                        cmbAddon.Items.Add(addon);
+                    }
+
+                    int index = cmbAddon.Items.IndexOf("skin.confluence");
+                    if (index > -1)
+                    {
+                        cmbAddon.SelectedItem = cmbAddon.Items[index]; // setting the item triggers the LoadWithAddon call
+                    }
+
+                    DirectoryInfo current = new DirectoryInfo(Environment.CurrentDirectory);
+                    FileInfo[] cfg = current.GetFiles("language.cfg");
+                    if (cfg.Count() == 1)
+                    {
+                        StreamReader sr = new StreamReader(cfg[0].FullName);
+                        while (sr.EndOfStream == false)
+                        {
+                            string l = sr.ReadLine().Trim();
+                            if (cmbLanguage.Items.IndexOf(l) > -1)
+                            {
+                                AddLanguageToView("skin.confluence", l, listView1);
+                            }
+                        }
+                    }
                 }
                 else
                 {
-                    compare_as = 0;
+                    MessageBox.Show("Unable to find the language folder. Did you set XBMC_ROOT or specify the folder on the commandline?");
                 }
             }
-
-
-        }
-        public int Compare(object p, object q)
-        {
-            ListViewItem x = (ListViewItem)p;
-            ListViewItem y = (ListViewItem)q;
-
-            int result;
-            switch (compare_as)
+            catch (Exception ex)
             {
-                case 0:
-                    {
-                        result = String.Compare(x.SubItems[orderby].Text,
-                                                y.SubItems[orderby].Text);
+                MessageBox.Show(ex.Message);
+            }
+        }
 
-                        break;
-                    }
-                case 1:
-                    {
-                        int ix = 0;
-                        int iy = 0;
-                        try
-                        {
-                            ix = int.Parse(x.SubItems[orderby].Text);
-                            iy = int.Parse(y.SubItems[orderby].Text);
+        private void showOnlyItemsWithToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            ToolStripMenuItem ctl = (ToolStripMenuItem)sender;
+            ctl.Checked = !ctl.Checked;
+            filterpercent = ctl.Checked;
 
-                            result = ix - iy;
-                        }
-                        catch
-                        {
-                            result = String.Compare(x.SubItems[orderby].Text,
-                                                y.SubItems[orderby].Text);
-                        }
+            LoadWithAddon(cmbAddon.SelectedItem.ToString(), listView1, cmbLanguage);
+        }
+        private void saveFileDialog1_FileOk(object sender, CancelEventArgs e)
+        {
+            ExportToFile(((SaveFileDialog)sender).FileName);
+        }
 
-                        break;
-                    }
-                case 2:
-                    {
-                        try
-                        {
-                            DateTime d1 = DateTime.Parse(x.SubItems[orderby].Text);
-                            DateTime d2 = DateTime.Parse(y.SubItems[orderby].Text);
+        private void exportToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            saveFileDialog1.ShowDialog();
+        }
+        private void button1_Click(object sender, EventArgs e)
+        {
+            AddLanguageToView(cmbAddon.SelectedItem.ToString(), cmbLanguage.SelectedItem.ToString(), listView1);
+        }
 
-                            result = DateTime.Compare(d1, d2);
-                        }
-                        catch
-                        {
-                            result = string.Compare(x.SubItems[orderby].Text,
-                                                    y.SubItems[orderby].Text);
-                        }
-                        break;
-                    }
-                default:
-                    goto case 0;
+        private void cmbAddon_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            LoadWithAddon(cmbAddon.SelectedItem.ToString(), listView1, cmbLanguage); ;
+        }
+        private void lookupByNumericIDToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            frmEvalID evalform = new frmEvalID(languages);
+            evalform.ShowDialog();
+        }
+
+        private void checkBox1_CheckedChanged(object sender, EventArgs e)
+        {
+            CheckBox ctl = (CheckBox)sender;
+            checkBox2.Enabled = !ctl.Checked;
+        }
+
+        private void checkBox2_CheckedChanged(object sender, EventArgs e)
+        {
+            PopulateListView(listView1);
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            PopulateListView(listView1);
+        }
+
+        private void listView1_ColumnClick(object sender, System.Windows.Forms.ColumnClickEventArgs e)
+        {
+            ListView ctl = (ListView)sender;
+            if (e.Column != sorted)
+            {
+                sorted = e.Column;
+                ctl.Sorting = SortOrder.Ascending;
+            }
+            else
+            {
+                ctl.Sorting = (ctl.Sorting == SortOrder.Ascending) ? SortOrder.Descending : SortOrder.Ascending;
             }
 
-
-            return (order == SortOrder.Descending) ? -result : result;
+            if (e.Column != 0)
+            {
+                ctl.ListViewItemSorter = new ListViewItemComparer(e.Column, ctl.Sorting, typeof(string));
+            }
+            else
+            {
+                ctl.ListViewItemSorter = new ListViewItemComparer(e.Column, ctl.Sorting, typeof(int));
+            }
+            ctl.Sort();
         }
+
+        #endregion
     }
 }
 
