@@ -41,6 +41,7 @@ namespace SimplePOViewerXBMC
         private int sorted = -1;
         private bool filterpercent = false;
         private DirectoryInfo xbmc = null;
+        private Preferences preferences = null;
 
         private Dictionary<string, LanguageInfo> languages = new Dictionary<string, LanguageInfo>();
 
@@ -334,11 +335,12 @@ namespace SimplePOViewerXBMC
 
         #region Form entry points
 
-        public frmMain(DirectoryInfo XBMC_ROOT)
+        public frmMain(DirectoryInfo XBMC_ROOT, Preferences p)
         {
             InitializeComponent();
 
             xbmc = XBMC_ROOT;
+            preferences = p;
 
         }
         internal frmMain()
@@ -375,19 +377,9 @@ namespace SimplePOViewerXBMC
                         cmbAddon.SelectedItem = cmbAddon.Items[index]; // setting the item triggers the LoadWithAddon call
                     }
 
-                    DirectoryInfo current = new DirectoryInfo(Environment.CurrentDirectory);
-                    FileInfo[] cfg = current.GetFiles("language.cfg");
-                    if (cfg.Count() == 1)
+                    foreach (string lng in preferences.LoadOnStartup)
                     {
-                        StreamReader sr = new StreamReader(cfg[0].FullName);
-                        while (sr.EndOfStream == false)
-                        {
-                            string l = sr.ReadLine().Trim();
-                            if (cmbLanguage.Items.IndexOf(l) > -1)
-                            {
-                                AddLanguageToView("skin.confluence", l, listView1);
-                            }
-                        }
+                       AddLanguageToView("skin.confluence", lng, listView1);
                     }
                 }
                 else
@@ -433,6 +425,16 @@ namespace SimplePOViewerXBMC
             evalform.ShowDialog();
         }
 
+        private void preferencesToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            List<string> languages = new List<string>();
+            foreach (string lang in cmbLanguage.Items)
+                languages.Add(lang);
+
+            frmPrefs prefs = new frmPrefs(preferences,languages);
+            prefs.ShowDialog();
+        }
+
         private void checkBox1_CheckedChanged(object sender, EventArgs e)
         {
             CheckBox ctl = (CheckBox)sender;
@@ -474,6 +476,7 @@ namespace SimplePOViewerXBMC
         }
 
         #endregion
+
     }
 }
 

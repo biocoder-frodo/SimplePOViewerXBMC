@@ -34,8 +34,12 @@ namespace SimplePOViewerXBMC
         [STAThread]
         static void Main(string[] args)
         {
-            string xbmc = Environment.GetEnvironmentVariable("XBMC_ROOT");
-            if (xbmc == null)
+            Preferences prefs = new Preferences();
+            prefs.Restore();
+            string xbmc = prefs.RootFolder;
+
+            string env = Environment.GetEnvironmentVariable("XBMC_ROOT");
+            if (env == null || xbmc.Length == 0)
             {
                 if (args.Length == 0)
                 {
@@ -44,11 +48,15 @@ namespace SimplePOViewerXBMC
                 else
                     xbmc = args[0];
             }
+            else
+            {
+                xbmc = env;
+            }
 
             System.IO.DirectoryInfo root = new System.IO.DirectoryInfo(xbmc);
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new frmMain(root));
+            Application.Run(new frmMain(root, prefs));
         }
     }
 }
