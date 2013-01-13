@@ -39,7 +39,7 @@ namespace SimplePOViewerXBMC
             preferences = p;
 
             preferences.Restore();
-            
+
             foreach (string language in languages)
             {
                 if (language != "English")
@@ -51,6 +51,7 @@ namespace SimplePOViewerXBMC
                 lsbOnStartup.Items.Add(language);
             }
 
+            txtFolder.Text = preferences.RootFolder;
 
         }
 
@@ -63,6 +64,7 @@ namespace SimplePOViewerXBMC
         {
             folderBrowserDialog1.ShowDialog();
             string path = folderBrowserDialog1.SelectedPath;
+
             if (path.Length > 0)
             {
                 txtFolder.Text = path;

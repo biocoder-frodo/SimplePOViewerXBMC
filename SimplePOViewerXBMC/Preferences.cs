@@ -24,7 +24,7 @@ namespace SimplePOViewerXBMC
                 //if (System.IO.File.Exists(profile) == true )
                 //{
                     XDocument cfg = XDocument.Load(profile, LoadOptions.None); // for good measure? http://stackoverflow.com/questions/9135604/xdocument-saving-error-in-mono-this-xmlwriter-does-not-accept-text-at-this-stat
-                    RootFolder = cfg.Element("profile").Element("xbmcroot").Value;
+                    RootFolder = cfg.Element("profile").Element("xbmcroot").Value.Trim();
 					
 					if (RootFolder.Length>0 && RootFolder.Substring(RootFolder.Length-1,1) != Path.DirectorySeparatorChar.ToString())
 						RootFolder += Path.DirectorySeparatorChar;

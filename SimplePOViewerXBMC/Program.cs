@@ -36,21 +36,31 @@ namespace SimplePOViewerXBMC
         {
             Preferences prefs = new Preferences();
             prefs.Restore();
-            string xbmc = prefs.RootFolder;
 
-            string env = Environment.GetEnvironmentVariable("XBMC_ROOT");
-            if (env == null || xbmc.Length == 0)
+            string xbmc = Environment.CurrentDirectory;
+
+            if (args.Length == 0)
             {
-                if (args.Length == 0)
+                string env = Environment.GetEnvironmentVariable("XBMC_ROOT");
+                if (env == null)
                 {
-                    xbmc = Environment.CurrentDirectory;
+                    if (prefs.RootFolder.Length > 0)
+                    {
+                        xbmc = prefs.RootFolder;
+                    }
+                    else
+                    {
+                        ; // try the current directory
+                    }
                 }
                 else
-                    xbmc = args[0];
+                {
+                    xbmc = env;
+                }
             }
             else
             {
-                xbmc = env;
+                xbmc = args[0];
             }
 
             System.IO.DirectoryInfo root = new System.IO.DirectoryInfo(xbmc);
