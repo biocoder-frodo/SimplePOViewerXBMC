@@ -13,19 +13,24 @@ namespace SimplePOViewerXBMC
         public string RootFolder = string.Empty;
 
         private string profile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                                 ".xmbc.translations.SimplePOViewer.profile");
+                                 ".xbmc.translations.SimplePOViewer.profile");
 
 
         public void Restore()
         {
             try
             {
-                if (File.Exists(profile))
-                {
-                    XDocument cfg = XDocument.Load(profile);
+				Console.WriteLine ("Reading from profile '" + profile +"'");
+                //if (System.IO.File.Exists(profile) == true )
+                //{
+                    XDocument cfg = XDocument.Load(profile, LoadOptions.None); // for good measure? http://stackoverflow.com/questions/9135604/xdocument-saving-error-in-mono-this-xmlwriter-does-not-accept-text-at-this-stat
                     RootFolder = cfg.Element("profile").Element("xbmcroot").Value;
-                    LoadOnStartup = GetLanguages(cfg.Element("profile").Element("languages").Value);
-                }
+					
+					if (RootFolder.Length>0 && RootFolder.Substring(RootFolder.Length-1,1) != Path.DirectorySeparatorChar.ToString())
+						RootFolder += Path.DirectorySeparatorChar;
+                    
+					LoadOnStartup = GetLanguages(cfg.Element("profile").Element("languages").Value);
+                //}
             }
             catch (Exception ex)
             {
@@ -36,7 +41,8 @@ namespace SimplePOViewerXBMC
         public void Save()
         {
             try
-            {
+            {  
+				Console.WriteLine ("Saving to profile '" + profile +"'");
                 XDocument cfg = new XDocument(
                                                new XElement("profile",
                                                new XElement("xbmcroot"), new XElement("languages")));
@@ -54,7 +60,13 @@ namespace SimplePOViewerXBMC
 
         private List<string> GetLanguages(string text)
         {
-            return text.Split(';').ToList();
+			List<string> list = new List<string>();
+			
+			if (text.Trim ().Length >0)
+			{
+				list = text.Split(';').ToList();
+			}
+            return list; 
         }
 
         private string SetLanguages(List<string> list)

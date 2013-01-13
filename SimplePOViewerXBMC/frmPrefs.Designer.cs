@@ -55,7 +55,7 @@
             this.lsbAllLanguages.FormattingEnabled = true;
             this.lsbAllLanguages.Location = new System.Drawing.Point(12, 25);
             this.lsbAllLanguages.Name = "lsbAllLanguages";
-            this.lsbAllLanguages.Size = new System.Drawing.Size(144, 173);
+            this.lsbAllLanguages.Size = new System.Drawing.Size(144, 186);
             this.lsbAllLanguages.TabIndex = 0;
             // 
             // cmdOk
@@ -92,7 +92,7 @@
             this.lsbOnStartup.FormattingEnabled = true;
             this.lsbOnStartup.Location = new System.Drawing.Point(240, 25);
             this.lsbOnStartup.Name = "lsbOnStartup";
-            this.lsbOnStartup.Size = new System.Drawing.Size(144, 173);
+            this.lsbOnStartup.Size = new System.Drawing.Size(144, 186);
             this.lsbOnStartup.TabIndex = 4;
             // 
             // label2
@@ -193,7 +193,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(492, 313);
+            this.ClientSize = new System.Drawing.Size(492, 328);
             this.ControlBox = false;
             this.Controls.Add(this.cmdMoveDown);
             this.Controls.Add(this.cmdMoveUp);
