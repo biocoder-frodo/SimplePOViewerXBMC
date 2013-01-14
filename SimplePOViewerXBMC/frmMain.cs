@@ -38,10 +38,14 @@ namespace SimplePOViewerXBMC
 {
     public partial class frmMain : Form
     {
-        private int sorted = -1;
-        private bool filterpercent = false;
+
         private DirectoryInfo xbmc = null;
         private Preferences preferences = null;
+
+        private bool self_init = true;
+        private int sorted = -1;
+        private bool filterpercent = false;
+        private bool filter_changed = false;
 
         private Dictionary<string, LanguageInfo> languages = new Dictionary<string, LanguageInfo>();
 
@@ -131,9 +135,6 @@ namespace SimplePOViewerXBMC
                     ch[0].Width = list.Columns[2].Width;
                     list.Columns.AddRange(ch);
                 }
-
-                PopulateListView(list);
-
             }
             catch (Exception ex)
             {
@@ -160,8 +161,6 @@ namespace SimplePOViewerXBMC
                         languages[lng] = LoadPO(lng, addon_resource);
                     }
                 }
-
-                PopulateListView(list);
 
                 set_language.SelectedItem = set_language.Items[set_language.Items.IndexOf("English")];
             }
@@ -220,15 +219,17 @@ namespace SimplePOViewerXBMC
 
         private void PopulateListView(ListView control)
         {
-            bool ignore_case = checkBox2.Checked;
-            string match_text = txtFilter.Text.Trim();
-
-            if (ignore_case) match_text = match_text.ToLower();
-
-            LanguageInfo en = languages["English"];
-
             try
             {
+
+                bool ignore_case = checkBox2.Checked;
+                string match_text = txtFilter.Text.Trim();
+
+                if (ignore_case) match_text = match_text.ToLower();
+
+                LanguageInfo en = languages["English"];
+
+
                 if (en != null)
                 {
                     control.Items.Clear();
@@ -376,11 +377,14 @@ namespace SimplePOViewerXBMC
                     {
                         cmbAddon.SelectedItem = cmbAddon.Items[index]; // setting the item triggers the LoadWithAddon call
                     }
-
+                    
                     foreach (string lng in preferences.LoadOnStartup)
                     {
-                       AddLanguageToView("skin.confluence", lng, listView1);
+                        AddLanguageToView("skin.confluence", lng, listView1);
                     }
+
+                    PopulateListView(listView1);
+                    
                 }
                 else
                 {
@@ -391,6 +395,8 @@ namespace SimplePOViewerXBMC
             {
                 MessageBox.Show(ex.Message);
             }
+
+            self_init = false;
         }
 
         private void showOnlyItemsWithToolStripMenuItem_Click(object sender, EventArgs e)
@@ -400,6 +406,9 @@ namespace SimplePOViewerXBMC
             filterpercent = ctl.Checked;
 
             LoadWithAddon(cmbAddon.SelectedItem.ToString(), listView1, cmbLanguage);
+
+            PopulateListView(listView1);
+
         }
         private void saveFileDialog1_FileOk(object sender, CancelEventArgs e)
         {
@@ -413,11 +422,17 @@ namespace SimplePOViewerXBMC
         private void button1_Click(object sender, EventArgs e)
         {
             AddLanguageToView(cmbAddon.SelectedItem.ToString(), cmbLanguage.SelectedItem.ToString(), listView1);
+
+            PopulateListView(listView1);
         }
 
         private void cmbAddon_SelectedIndexChanged(object sender, EventArgs e)
         {
-            LoadWithAddon(cmbAddon.SelectedItem.ToString(), listView1, cmbLanguage); ;
+            LoadWithAddon(cmbAddon.SelectedItem.ToString(), listView1, cmbLanguage);
+            if (self_init == false)
+            {
+                PopulateListView(listView1);
+            }
         }
         private void lookupByNumericIDToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -431,7 +446,7 @@ namespace SimplePOViewerXBMC
             foreach (string lang in cmbLanguage.Items)
                 languages.Add(lang);
 
-            frmPrefs prefs = new frmPrefs(preferences,languages);
+            frmPrefs prefs = new frmPrefs(preferences, languages);
             prefs.ShowDialog();
         }
 
@@ -440,15 +455,22 @@ namespace SimplePOViewerXBMC
             CheckBox ctl = (CheckBox)sender;
             checkBox2.Enabled = !ctl.Checked;
         }
-
+        private void txtFilter_TextChanged(object sender, EventArgs e)
+        {
+            filter_changed = true;
+            button2.Enabled = filter_changed;
+        }
         private void checkBox2_CheckedChanged(object sender, EventArgs e)
         {
+            if (txtFilter.Text.Trim().Length > 0 && filter_changed)
             PopulateListView(listView1);
         }
 
         private void button2_Click(object sender, EventArgs e)
         {
             PopulateListView(listView1);
+            filter_changed = false;
+            ((Button)sender).Enabled = filter_changed;
         }
 
         private void listView1_ColumnClick(object sender, System.Windows.Forms.ColumnClickEventArgs e)
