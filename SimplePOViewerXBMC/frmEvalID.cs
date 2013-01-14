@@ -21,12 +21,8 @@
 
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
 using System.Windows.Forms;
+
 using XBMC.International;
 
 namespace SimplePOViewerXBMC
@@ -101,6 +97,14 @@ namespace SimplePOViewerXBMC
                     }
                 }
             }
+        }
+
+        private void copyToClipboardToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            string paste = string.Empty;
+            foreach (string t in listBox1.Items)
+                paste += t + Environment.NewLine;
+            Clipboard.SetText(paste, TextDataFormat.UnicodeText);
         }
     }
 }
