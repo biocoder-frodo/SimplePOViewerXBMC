@@ -68,7 +68,7 @@ namespace SimplePOViewerXBMC
             this.statusStrip1 = new System.Windows.Forms.StatusStrip();
             this.toolStripStatusLabel1 = new System.Windows.Forms.ToolStripStatusLabel();
             this.saveFileDialog1 = new System.Windows.Forms.SaveFileDialog();
-            this.checkBox2 = new System.Windows.Forms.CheckBox();
+            this.chkIgnore = new System.Windows.Forms.CheckBox();
             this.txtFilter = new System.Windows.Forms.TextBox();
             this.button2 = new System.Windows.Forms.Button();
             this.menuStrip1.SuspendLayout();
@@ -229,16 +229,16 @@ namespace SimplePOViewerXBMC
             this.saveFileDialog1.Filter = "Tab Delimited Text (*.txt)|*.txt|All files (*.*)|*.*\";";
             this.saveFileDialog1.FileOk += new System.ComponentModel.CancelEventHandler(this.saveFileDialog1_FileOk);
             // 
-            // checkBox2
+            // chkIgnore
             // 
-            this.checkBox2.AutoSize = true;
-            this.checkBox2.Location = new System.Drawing.Point(378, 65);
-            this.checkBox2.Name = "checkBox2";
-            this.checkBox2.Size = new System.Drawing.Size(82, 17);
-            this.checkBox2.TabIndex = 11;
-            this.checkBox2.Text = "Ignore case";
-            this.checkBox2.UseVisualStyleBackColor = true;
-            this.checkBox2.CheckedChanged += new System.EventHandler(this.checkBox2_CheckedChanged);
+            this.chkIgnore.AutoSize = true;
+            this.chkIgnore.Location = new System.Drawing.Point(378, 65);
+            this.chkIgnore.Name = "chkIgnore";
+            this.chkIgnore.Size = new System.Drawing.Size(82, 17);
+            this.chkIgnore.TabIndex = 11;
+            this.chkIgnore.Text = "Ignore case";
+            this.chkIgnore.UseVisualStyleBackColor = true;
+            this.chkIgnore.CheckedChanged += new System.EventHandler(this.chkIgnore_CheckedChanged);
             // 
             // txtFilter
             // 
@@ -265,7 +265,7 @@ namespace SimplePOViewerXBMC
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1166, 575);
             this.Controls.Add(this.button2);
-            this.Controls.Add(this.checkBox2);
+            this.Controls.Add(this.chkIgnore);
             this.Controls.Add(this.txtFilter);
             this.Controls.Add(this.statusStrip1);
             this.Controls.Add(this.cmbAddon);
@@ -305,7 +305,7 @@ namespace SimplePOViewerXBMC
         private System.Windows.Forms.ToolStripMenuItem showOnlyItemsWithToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem lookupByNumericIDToolStripMenuItem;
         private System.Windows.Forms.SaveFileDialog saveFileDialog1;
-        private System.Windows.Forms.CheckBox checkBox2;
+        private System.Windows.Forms.CheckBox chkIgnore;
         private System.Windows.Forms.TextBox txtFilter;
         private System.Windows.Forms.Button button2;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;

@@ -216,7 +216,7 @@ namespace SimplePOViewerXBMC
             try
             {
 
-                bool ignore_case = checkBox2.Checked;
+                bool ignore_case = chkIgnore.Checked;
                 string match_text = txtFilter.Text.Trim();
 
                 if (ignore_case) match_text = match_text.ToLower();
@@ -444,20 +444,15 @@ namespace SimplePOViewerXBMC
             prefs.ShowDialog();
         }
 
-        private void checkBox1_CheckedChanged(object sender, EventArgs e)
-        {
-            CheckBox ctl = (CheckBox)sender;
-            checkBox2.Enabled = !ctl.Checked;
-        }
         private void txtFilter_TextChanged(object sender, EventArgs e)
         {
             filter_changed = true;
             button2.Enabled = filter_changed;
         }
-        private void checkBox2_CheckedChanged(object sender, EventArgs e)
+        private void chkIgnore_CheckedChanged(object sender, EventArgs e)
         {
-            if (txtFilter.Text.Trim().Length > 0 && filter_changed)
-            PopulateListView(listView1);
+            if (txtFilter.Text.Trim().Length > 0)
+                filter_changed = true;
         }
 
         private void button2_Click(object sender, EventArgs e)
