@@ -71,6 +71,7 @@ namespace SimplePOViewerXBMC
             this.chkIgnore = new System.Windows.Forms.CheckBox();
             this.txtFilter = new System.Windows.Forms.TextBox();
             this.button2 = new System.Windows.Forms.Button();
+            this.columnHeader4 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.menuStrip1.SuspendLayout();
             this.statusStrip1.SuspendLayout();
             this.SuspendLayout();
@@ -82,6 +83,7 @@ namespace SimplePOViewerXBMC
             | System.Windows.Forms.AnchorStyles.Right)));
             this.listView1.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.columnHeader1,
+            this.columnHeader4,
             this.columnHeader3,
             this.columnHeader2});
             this.listView1.FullRowSelect = true;
@@ -95,17 +97,28 @@ namespace SimplePOViewerXBMC
             // 
             // columnHeader1
             // 
+            this.columnHeader1.DisplayIndex = 0;
             this.columnHeader1.Text = "ID";
             this.columnHeader1.Width = 87;
             // 
             // columnHeader3
             // 
+            this.columnHeader3.DisplayIndex = 2;
             this.columnHeader3.Text = "Comment";
             // 
             // columnHeader2
             // 
+            this.columnHeader2.DisplayIndex = 3;
             this.columnHeader2.Text = "Name(en)";
             this.columnHeader2.Width = 345;
+
+            // 
+            // columnHeader4
+            //
+            this.columnHeader4.DisplayIndex = 1;
+            this.columnHeader4.Text = "Plural";
+            this.columnHeader4.Width = 20;
+
             // 
             // cmbLanguage
             // 
@@ -258,6 +271,7 @@ namespace SimplePOViewerXBMC
             this.button2.Text = "Filter";
             this.button2.UseVisualStyleBackColor = true;
             this.button2.Click += new System.EventHandler(this.button2_Click);
+
             // 
             // frmMain
             // 
@@ -310,6 +324,7 @@ namespace SimplePOViewerXBMC
         private System.Windows.Forms.Button button2;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
         private System.Windows.Forms.ToolStripMenuItem preferencesToolStripMenuItem;
+        private System.Windows.Forms.ColumnHeader columnHeader4;
     }
 }
 

@@ -32,17 +32,57 @@ namespace XBMC.International
         public readonly string Key;
         public readonly string Text;
         public readonly string Comment;
-        public TextResource(int numid, string key, string text, string comment)
+        public readonly bool HasPluralForms;
+        public readonly Dictionary<int, string> PluralForms;
+        public readonly string PluralForm;
+
+        public TextResource(int numid, string key, string text, string comment, string plural = "", Dictionary<int, string> plural_forms = null)
         {
             NumId = numid;
             Key = key;
             Text = text;
             Comment = comment;
+
+            HasPluralForms = plural != string.Empty || plural_forms != null;
+            PluralForm = plural;
+            if (plural_forms == null)
+            {
+                PluralForms = new Dictionary<int, string>();
+            }
+            else
+            {
+                PluralForms = plural_forms;
+            }
         }
     }
 
     public class LanguageInfo
     {
+
+        private string[] po_allowed =
+        {
+            "msgctxt \""
+            , "msgid \""
+            , "msgid_plural \""
+            , "msgstr["
+            , "msgstr \""
+            , "\""
+        };
+
+        private bool[]   present = new bool[5];
+        private string[] current_text = new string[5];
+
+        // 'hardwired' to the keywords above
+        private const int keyword_unknown = -1;
+        private const int keyword_msg_context = 0;
+        private const int keyword_msg_id = 1;
+        private const int keyword_msg_plural = 2;
+        private const int keyword_msg_plural_string = 3;
+        private const int keyword_msg_text = 4;
+        private const int po_line_continuation = 5;
+
+        
+
         private Dictionary<string, string> revision_info = new Dictionary<string, string>();
         private Dictionary<int, TextResource> map = new Dictionary<int, TextResource>();
 
@@ -62,8 +102,11 @@ namespace XBMC.International
         {
             int line = 0;
             int strings = 0;
-            string comment = string.Empty;
-            string comment_running = comment;
+            string Quote = "\"";
+            Dictionary<string, int> line_continuations = new Dictionary<string, int>();
+            Dictionary<int, string> plurals = new Dictionary<int, string>();
+            string comment_running = string.Empty;
+
             int min = int.MaxValue;
             int max = int.MinValue;
 
@@ -72,101 +115,287 @@ namespace XBMC.International
 
             string header = "msgid \"\"\r\nmsgstr \"\"";
             StreamReader po = new FileInfo(file).OpenText();
-            string h = po.ReadLine().Trim(); line += 1;
+            string po_line = po.ReadLine().Trim(); line += 1;
+
+            for (int i = 0; i <= present.GetUpperBound(0); i++)
+            {
+                present[i] = false;
+                current_text[i] = string.Empty;
+            }
 
             Console.Write("Reading '" + file + "' ... ");
 
-            while (h.StartsWith("#"))
+            while (po_line.StartsWith("#"))
             {
-                h = po.ReadLine().Trim(); line += 1;
+                po_line = po.ReadLine().Trim(); line += 1;
             }
 
-            h += "\r\n" + po.ReadLine(); line += 1;
+            po_line += "\r\n" + po.ReadLine(); line += 1;
 
-            if (h == header)
+            if (po_line == header)
             {
-                h = po.ReadLine(); line += 1;
-                while (h.Length > 0)
+                po_line = po.ReadLine(); line += 1;
+                while (po_line.Length > 0)
                 {
-                    string name = h.Substring(0, h.IndexOf(":"));
-                    string value = h.Substring(h.IndexOf(":") + 1).Trim();
+                    string name = po_line.Substring(0, po_line.IndexOf(":"));
+                    string value = po_line.Substring(po_line.IndexOf(":") + 1).Trim();
                     if (name[0] == '\"') name = name.Substring(1);
                     if (value[value.Length - 1] == '\"') value = value.Substring(0, value.Length - 1);
                     if (ignore_revision == false) revision_info.Add(name, value);
-                    h = po.ReadLine(); line += 1;
+
+                    po_line = po.ReadLine(); line += 1;
                 }
                 if (ignore_revision == false) revision_info.Add("Language-Name", language);
-                string numid = "";
-                string key;
-                string text;
+
+
+                bool need_read = false;
+                int id = int.MinValue;
+                int line_contd = keyword_unknown;
+                int plural_case = -1;
 
                 while (po.EndOfStream == false)
                 {
-                    numid = po.ReadLine().Trim(); line += 1;
-
-                    if (numid.StartsWith("msgctxt \"#") == true)
+                    if (need_read)
                     {
-                        comment = comment_running;
-                        comment_running = string.Empty;
-
-                        numid = numid.Substring("msgctxt \"#".Length);
-                        if (numid.EndsWith("\"")) numid = numid.Substring(0, numid.Length - 1);
-
-
-                        key = po.ReadLine().Trim(); line += 1;
-                        if (key.StartsWith("msgid \"") == true)
-                        {
-                            key = key.Substring("msgid \"".Length);
-                            if (key.EndsWith("\"")) key = key.Substring(0, key.Length - 1);
-                        }
-                        else
-                            throw new FileLoadException(string.Format("Expecting textual message id on line {0} in file {1}.", line, file));
-
-                        text = po.ReadLine().Trim(); line += 1;
-                        if (text.StartsWith("msgstr \"") == true)
-                        {
-                            text = text.Substring("msgstr \"".Length);
-                            if (text.EndsWith("\"")) text = text.Substring(0, text.Length - 1);
-                        }
-                        else
-                            throw new FileLoadException(string.Format("Expecting resource message on line {0} in file {1}.", line, file));
-
-                        string empty = po.ReadLine(); line += 1;
-
-                        int id = 0;
-                        if (int.TryParse(numid, out id) == false)
-                            throw new FileLoadException(string.Format("Expecting numeric message id on line {0} in file {1}.", line, file));
-
-                        try
-                        {
-                            if (id > max) max = id;
-                            if (id < min) min = id; 
-                            map.Add(id, new TextResource(id, key, text, comment));
-                            comment = string.Empty;
-                            strings++;
-                        }
-                        catch (ArgumentException ex)
-                        {
-                            throw new FileLoadException(string.Format("Duplicate message id on line {0} in file {1}. {2}", line, file, ex));
-                        }
-
-
+                        po_line = po.ReadLine().Trim(); line += 1;
                     }
                     else
-                        if (numid.Length > 0 && numid.StartsWith("#") == false)
+                    {
+                        need_read = true; // read on the next pass
+                    }
+
+                    if (po_line.Length == 0)
+                    {
+                        if (current_text[keyword_msg_context].Length > 0)
                         {
-                            throw new FileLoadException(string.Format("Expecting numeric message id on line {0} in file {1}.", line, file));
+                            try
+                            {
+                                if (id > max) max = id;
+                                if (id < min) min = id;
+                                if (current_text[keyword_msg_plural] == string.Empty && plurals.Count == 0)
+                                {
+                                    map.Add(id, new TextResource(id, current_text[keyword_msg_id], current_text[keyword_msg_text], comment_running));
+                                }
+                                else
+                                {
+                                    map.Add(id, new TextResource(id, current_text[keyword_msg_id], current_text[keyword_msg_text], comment_running, current_text[keyword_msg_plural], plurals));
+                                }
+                                strings++;
+                            }
+                            catch (ArgumentException ex)
+                            {
+                                throw new FileLoadException(string.Format("Duplicate message id on line {0} in file {1}. {2}", line, file, ex));
+                            }
+                        }
+                        comment_running = string.Empty;
+                        id = int.MinValue;
+                        line_contd = keyword_unknown;
+                        for (int i = 0; i <= present.GetUpperBound(0); i++)
+                        {
+                            present[i] = false;
+                            current_text[i] = string.Empty;
+                        }
+                        plurals = new Dictionary<int, string>();
+                    }
+                    else
+                    {
+                        if (po_line.StartsWith("#") == true)
+                        {
+                            if (po_line.StartsWith("#empty string") == false)
+                            {
+                                comment_running += po_line;
+                            }
                         }
                         else
                         {
-                            if (numid.Length > 0 && numid.StartsWith("#empty string") == false)
-                            {                                
-                                comment_running += numid;
+                            int token = keyword_unknown;
+                            for (int i = 0; i <= po_allowed.GetUpperBound(0); i++)
+                            {
+                                if (po_line.StartsWith(po_allowed[i]))
+                                {
+                                    token = i;
+                                    break;
+                                }
+                            }
+
+                            switch (token)
+                            {
+                                case keyword_msg_context:
+                                case keyword_msg_id:
+                                case keyword_msg_plural:
+                                case keyword_msg_text:
+                                    {
+                                        if (present[token] == false)
+                                        {
+                                            if (token != keyword_msg_context) // no line continuation for context
+                                            {
+                                                line_contd = token;
+                                            }
+                                            current_text[token] = po_line.Substring(po_allowed[token].Length);
+                                            if (current_text[token].EndsWith(Quote))
+                                            {
+                                                current_text[token] = current_text[token].Substring(0, current_text[token].Length - 1);
+                                            }
+                                            else
+                                            {
+                                                Console.WriteLine("Warning: Line {0} does not end with a \".", line);
+                                            }
+                                            present[token] = true;
+
+                                            if (token == keyword_msg_context)
+                                            {
+                                                string num_id = po_line.Substring((po_allowed[token]+"#").Length);
+                                                if (num_id.EndsWith(Quote))
+                                                {
+                                                    num_id = num_id.Substring(0, num_id.Length - 1);
+                                                }
+                                                else
+                                                {
+                                                    Console.WriteLine("Warning: Line {0} does not end with a \".", line);
+                                                }
+                                                if (int.TryParse(num_id, out id) == false)
+                                                    throw new FileLoadException(string.Format("Expecting numeric message id on line {0} in file {1}.", line, file));
+                                             }
+                                        }
+                                        else
+                                        {
+                                            throw new FileLoadException(string.Format("Unexpected PO token on line {0} in file {1}.", line, file));
+                                        }
+
+                                        break;
+                                    }
+                                case keyword_msg_plural_string:
+                                    {
+                                        plural_case = -1;
+                                        line_contd = token;
+
+                                        string plural = po_line.Substring((po_allowed[token].Length));
+                                        if (plural.Contains(']'))
+                                        {
+                                            string p = plural.Substring(0,plural.IndexOf(']')).Trim();
+
+                                            if (int.TryParse(p, out plural_case) == true)
+                                            {
+                                                plural = plural.Substring(plural.IndexOf(']') + 1).Trim();
+                                                if (plural.StartsWith(Quote))
+                                                {
+                                                    
+
+                                                    if (plurals.ContainsKey(plural_case) == false)
+                                                    {
+                                                        if (plural.EndsWith(Quote))
+                                                        {
+                                                            plural = plural.Substring(1, plural.Length - 2);
+                                                        }
+                                                        else
+                                                        {
+                                                            Console.WriteLine("Warning: Line {0} does not end with a \".", line);
+                                                        }
+                                                        plurals.Add(plural_case, plural);
+                                                    }
+                                                    else
+                                                    {
+                                                        throw new FileLoadException(string.Format("Duplicate plural string resource [case {0}] on line {1} in file {2}.", plural_case, line, file));
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    throw new FileLoadException(string.Format("Expecting plural string resource [case {0}] on line {1} in file {2}.", plural_case, line, file));
+                                                }
+                                            }
+                                            else
+                                            {
+                                                throw new FileLoadException(string.Format("Expecting numeric plural case id on line {0} in file {1}.", line, file));
+                                            }
+                                        }
+                                        else
+                                        {
+                                            throw new FileLoadException(string.Format("Expecting terminating ] on line {0} in file {1}.", line, file));
+                                        }
+
+                                        break;
+                                    }
+                                case po_line_continuation:
+                                    {
+                                        if (line_contd != keyword_unknown)
+                                        {
+                                            if (line_continuations.ContainsKey(current_text[keyword_msg_context]) == false)
+                                            {
+                                                line_continuations.Add(current_text[keyword_msg_context], 1);
+                                            }
+
+                                            string text = po_line.Substring(po_allowed[token].Length);
+                                            if (text.EndsWith(Quote))
+                                            {
+                                                text = text.Substring(0, text.Length - 1);
+                                            }
+                                            else
+                                            {
+                                                Console.WriteLine("Warning: Line {0} does not end with a \".", line);
+                                            }
+                                            if (line_contd == keyword_msg_plural_string)
+                                            {
+                                                if (plurals.ContainsKey(plural_case))
+                                                {
+                                                    plurals[plural_case] += text;
+                                                }
+                                                else
+                                                {
+                                                    throw new FileLoadException(string.Format("Expecting to continue a string declaration from the previous line on line {0} in file {1}", line, file));
+                                                }
+                                            }
+                                            else
+                                            {
+                                                current_text[line_contd] += text;
+                                            }
+                                        }
+                                        else
+                                        {
+                                            throw new FileLoadException(string.Format("Expecting to continue a string declaration from the previous line on line {0} in file {1}", line, file));
+                                        }
+                                        break;
+                                    }
+                                case keyword_unknown:
+                                    {
+                                        throw new FileLoadException(string.Format("Expecting PO token on line {0} in file {1}.", line, file));
+                                    }
+                                default:
+                                    {
+                                        goto case keyword_unknown;
+                                    }
                             }
                         }
+                    }
+                }
+
+                if (current_text[keyword_msg_context].Length > 0)
+                {
+                    try
+                    {
+                        if (id > max) max = id;
+                        if (id < min) min = id;
+                        if (current_text[keyword_msg_plural] == string.Empty && plurals.Count == 0)
+                        {
+                            map.Add(id, new TextResource(id, current_text[keyword_msg_id], current_text[keyword_msg_text], comment_running));
+                        }
+                        else
+                        {
+                            map.Add(id, new TextResource(id, current_text[keyword_msg_id], current_text[keyword_msg_text], comment_running, current_text[keyword_msg_plural], plurals));
+                        }
+                        strings++;
+                    }
+                    catch (ArgumentException ex)
+                    {
+                        throw new FileLoadException(string.Format("Duplicate message id on line {0} in file {1}. {2}", line, file, ex));
+                    }
                 }
 
                 Console.WriteLine(strings.ToString() + " string(s) [" + min.ToString() + " thru " + max.ToString() + "]");
+                
+                foreach (string contd in line_continuations.Keys)
+                {
+                    Console.WriteLine(string.Format("Warning: Line continuation for context {0} in file {1}", contd, file));
+                }
             }
             else
             {
@@ -174,4 +403,5 @@ namespace XBMC.International
             }
         }
     }
+
 }

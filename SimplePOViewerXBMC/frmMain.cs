@@ -126,7 +126,7 @@ namespace SimplePOViewerXBMC
                     languages.Add(language, lng);
 
                     ch[0].Text = string.Format("Translation({0})", lng.RevisionInfo["Language"].Replace(@"\n", ""));
-                    ch[0].Width = list.Columns[2].Width;
+                    ch[0].Width = list.Columns[3].Width;
                     list.Columns.AddRange(ch);
                 }
             }
@@ -203,12 +203,35 @@ namespace SimplePOViewerXBMC
             return addons;
         }
 
-        private string ResourceText(Dictionary<int, TextResource> map, int key)
+        private string ResourceText(Dictionary<int, TextResource> map, int key, int plural = -1)
         {
             if (map.ContainsKey(key) == true)
-                return map[key].Text;
+            {
+                if (plural < 0)
+                {
+                    return map[key].Text;
+                }
+                else
+                {
+                    if (plural == int.MaxValue)
+                    {
+                        return map[key].PluralForm;
+                    }
+                    else
+                    {
+                        if (map[key].PluralForms.ContainsKey(plural))
+                        {
+                            return map[key].PluralForms[plural];
+                        }
+                        else
+                        {
+                            return string.Empty;
+                        }
+                    }
+                }
+            }
             else
-                return "";
+                return string.Empty;
         }
 
         private void PopulateListView(ListView control)
@@ -268,28 +291,12 @@ namespace SimplePOViewerXBMC
                             {
                                 if (t.Key.Contains('%'))
                                 {
-                                    ListViewItem lvi = control.Items.Add(t.NumId.ToString());
-                                    lvi.SubItems.Add(t.Comment);
-
-                                    lvi.SubItems.Add(t.Key);
-
-                                    for (int i = 1; i < languages.Count; i++)
-                                    {
-                                        lvi.SubItems.Add(ResourceText(languages.Values.ElementAt(i).Text, t.NumId));
-
-                                    }
+                                    AddRows(control, t);
                                 }
                             }
                             else
                             {
-                                ListViewItem lvi = control.Items.Add(t.NumId.ToString());
-                                lvi.SubItems.Add(t.Comment);
-                                lvi.SubItems.Add(t.Key);
-
-                                for (int i = 1; i < languages.Count; i++)
-                                {
-                                    lvi.SubItems.Add(ResourceText(languages.Values.ElementAt(i).Text, t.NumId));
-                                }
+                                AddRows(control, t);
                             }
                         }
                     }
@@ -304,6 +311,48 @@ namespace SimplePOViewerXBMC
             }
         }
 
+        private void AddRows(ListView control, TextResource src)
+        {
+            ListViewItem lvi;
+            lvi = control.Items.Add(src.NumId.ToString());            
+            lvi.SubItems.Add("");
+            lvi.SubItems.Add(src.Comment);
+            lvi.SubItems.Add(src.Key);
+
+            for (int i = 1; i < languages.Count; i++)
+            {
+                lvi.SubItems.Add(ResourceText(languages.Values.ElementAt(i).Text, src.NumId));
+            }
+
+            if (src.HasPluralForms)
+            {
+                if (src.PluralForm != string.Empty)
+                {
+                    lvi = control.Items.Add(src.NumId.ToString());
+                    lvi.SubItems.Add("p");
+                    lvi.SubItems.Add(src.Comment);
+                    lvi.SubItems.Add(src.Key);
+
+                    for (int i = 1; i < languages.Count; i++)
+                    {
+                        lvi.SubItems.Add(ResourceText(languages.Values.ElementAt(i).Text, src.NumId, int.MaxValue));
+                    }
+                }
+
+                foreach(int plural_case in src.PluralForms.Keys)
+                {
+                    lvi = control.Items.Add(src.NumId.ToString());
+                    lvi.SubItems.Add(plural_case.ToString());
+                    lvi.SubItems.Add(src.Comment);
+                    lvi.SubItems.Add(src.Key);
+
+                    for (int i = 1; i < languages.Count; i++)
+                    {
+                        lvi.SubItems.Add(ResourceText(languages.Values.ElementAt(i).Text, src.NumId, plural_case));
+                    }
+                }
+            }
+        }
 
         private void ExportToFile(string filename)
         {
